@@ -3,7 +3,7 @@
 ## 🎯 Basic Usage
 
 ```
-/api/icons?i=react,vue,angular
+https://ink-md-server.vercel.app/api?i=html,css,js
 ```
 
 ## 📋 Parameters
@@ -37,32 +37,32 @@
 
 ### Horizontal Layout với Dark Theme
 ```
-/api/icons?i=html,css,js&theme=dark&padding=16&radius=8&shadow=2
+https://ink-md-server.vercel.app/api?i=html,css,js&theme=dark&padding=16&radius=8&shadow=2
 ```
 
 ### Vertical Layout với Custom Background
 ```
-/api/icons?i=react,vue,angular&layout=v&bg=f0f0f0&padding=20&gap=16
+https://ink-md-server.vercel.app/api?i=react,vue,angular&layout=v&bg=f0f0f0&padding=20&gap=16
 ```
 
 ### Grid Layout với Border
 ```
-/api/icons?i=html,css,js,react,vue,angular,nodejs,python&layout=g&columns=4&border=cccccc&borderWidth=2&padding=24&radius=12
+https://ink-md-server.vercel.app/api?i=html,css,js,react,vue,angular,nodejs,python&layout=g&columns=4&border=cccccc&borderWidth=2&padding=24&radius=12
 ```
 
 ### Glow Effect
 ```
-/api/icons?i=react,vue,angular&glow=true&theme=dark&padding=20&radius=8
+https://ink-md-server.vercel.app/api?i=react,vue,angular&glow=true&theme=dark&padding=20&radius=8
 ```
 
 ### Light Theme với Shadow
 ```
-/api/icons?i=figma,sketch,photoshop&theme=light&shadow=3&padding=16&radius=12
+https://ink-md-server.vercel.app/api?i=figma,sketch,photoshop&theme=light&shadow=3&padding=16&radius=12
 ```
 
 ### Custom Styling
 ```
-/api/icons?i=github,gitlab,bitbucket&bg=2d3748&size=64&gap=20&padding=24&radius=16&shadow=2
+https://ink-md-server.vercel.app/api?i=github,gitlab,bitbucket&bg=2d3748&size=64&gap=20&padding=24&radius=16&shadow=2
 ```
 
 ## 🔧 Technical Details
@@ -100,12 +100,12 @@ All colors use hex format **without the # symbol**:
 
 ### Simple
 ```html
-<img src="/api/icons?i=react,vue,angular" />
+<img src="https://ink-md-server.vercel.app/api?i=react,vue,angular" />
 ```
 
 ### Styled Badge
 ```html
-<img src="/api/icons?i=html,css,js&theme=dark&padding=12&radius=8&shadow=2" />
+<img src="https://ink-md-server.vercel.app/api?i=html,css,js&theme=dark&padding=12&radius=8&shadow=2" />
 ```
 
 ### Tech Stack Display
