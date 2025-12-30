@@ -110,5 +110,8 @@ All colors use hex format **without the # symbol**:
 
 ### Tech Stack Display
 ```html
-<img src="/api/icons?i=react,nodejs,mongodb,docker&layout=h&bg=f8f9fa&padding=16&gap=16&radius=12&border=dee2e6&borderWidth=1" />
+<img src="https://ink-md-server.vercel.app/api?i=react,nodejs,mongodb,docker,gemini,claude,clerk,zed,winui,c,cs,dotnet,vuejs,react&layout=g&size=128&padding=16&gap=50&radius=12&glow=true" />
 ```
+<p align="center">
+<img src="https://ink-md-server.vercel.app/api?i=react,nodejs,mongodb,docker,gemini,claude,clerk,zed,winui,c,cs,dotnet,vuejs,react&layout=g&size=128&padding=16&gap=50&radius=12&glow=true" />
+</p>
