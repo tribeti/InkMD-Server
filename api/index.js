@@ -1,12 +1,50 @@
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
+
+/**
+ * Sanitize icon name to prevent path traversal attacks
+ * Only allows alphanumeric characters, hyphens, and underscores
+ */
+function sanitizeIconName(name) {
+  const cleanName = name.trim();
+
+  // SECURITY: Only allow safe characters (alphanumeric, hyphens, underscores)
+  if (!/^[a-zA-Z0-9_-]+$/.test(cleanName)) {
+    throw new Error(
+      `Invalid icon name: "${name}". Only alphanumeric, hyphens, and underscores are allowed.`,
+    );
+  }
+
+  // SECURITY: Extra check for path traversal patterns
+  if (
+    cleanName.includes("..") ||
+    cleanName.includes("/") ||
+    cleanName.includes("\\")
+  ) {
+    throw new Error(`Invalid icon name: "${name}". Path traversal detected.`);
+  }
+
+  // SECURITY: Prevent overly long names (DoS prevention)
+  if (cleanName.length > 100) {
+    throw new Error(
+      `Invalid icon name: "${name}". Name too long (max 100 chars).`,
+    );
+  }
+
+  return cleanName;
+}
 
 /**
  * Parse and validate query parameters
  */
 function parseQueryParams(query) {
+  const rawNames = query.i ? query.i.split(",") : [];
+
+  // SECURITY: Validate and sanitize all icon names
+  const iconNames = rawNames.map((name) => sanitizeIconName(name));
+
   const params = {
-    iconNames: query.i ? query.i.split(",").map((n) => n.trim()) : [],
+    iconNames,
     size: parseInt(query.size) || 48,
     gap: parseInt(query.gap) || 12,
     padding: parseInt(query.padding) || 0,
@@ -25,6 +63,12 @@ function parseQueryParams(query) {
   if (params.iconNames.length === 0) {
     throw new Error("Missing parameter ?i= (icon names)");
   }
+
+  // SECURITY: Limit number of icons to prevent DoS
+  if (params.iconNames.length > 50) {
+    throw new Error("Too many icons requested (max 50)");
+  }
+
   if (params.size < 16 || params.size > 256) {
     throw new Error("Size must be between 16 and 256");
   }
@@ -42,7 +86,13 @@ function parseQueryParams(query) {
  * Get background color based on theme or custom color
  */
 function getBackgroundColor(theme, bg) {
-  if (bg) return `#${bg}`;
+  if (bg) {
+    // SECURITY: Validate hex color format
+    if (!/^[0-9A-Fa-f]{6}$/.test(bg)) {
+      return "transparent"; // Fallback if invalid
+    }
+    return `#${bg}`;
+  }
 
   const themes = {
     light: "#ffffff",
@@ -147,50 +197,64 @@ function calculateDimensions(positions, params) {
 }
 
 /**
- * Process single icon file
+ * Process single icon file (async)
+ * PERFORMANCE: Uses async fs.promises instead of blocking fs.readFileSync
  */
-function processIconFile(filePath) {
-  if (!fs.existsSync(filePath)) {
+async function processIconFile(filePath) {
+  try {
+    // SECURITY: Verify file exists and is within expected directory
+    const content = await fs.readFile(filePath, "utf8");
+
+    // Extract viewBox
+    const viewBoxMatch = content.match(/viewBox=["']([^"']*)["']/i);
+    const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 24 24";
+
+    // Extract fill color from root svg element
+    const fillMatch = content.match(/<svg[^>]*fill=["']([^"']*)["'][^>]*>/i);
+    const fill = fillMatch ? fillMatch[1] : null;
+
+    // Extract inner SVG content
+    const bodyMatch = content.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+    const innerSVG = bodyMatch ? bodyMatch[1] : content;
+
+    return { viewBox, fill, innerSVG };
+  } catch (error) {
+    // File doesn't exist or can't be read
     return null;
   }
-
-  const content = fs.readFileSync(filePath, "utf8");
-
-  // Extract viewBox
-  const viewBoxMatch = content.match(/viewBox=["']([^"']*)["']/i);
-  const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 24 24";
-
-  // Extract fill color from root svg element
-  const fillMatch = content.match(/<svg[^>]*fill=["']([^"']*)["'][^>]*>/i);
-  const fill = fillMatch ? fillMatch[1] : null;
-
-  // Extract inner SVG content
-  const bodyMatch = content.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-  const innerSVG = bodyMatch ? bodyMatch[1] : content;
-
-  return { viewBox, fill, innerSVG };
 }
 
 /**
- * Main handler function
+ * Main handler function (async)
+ * PERFORMANCE: Processes all icons concurrently using Promise.all
  */
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
-    // Parse and validate parameters
+    // Parse and validate parameters (includes security sanitization)
     const params = parseQueryParams(req.query);
 
     const iconsDir = path.join(process.cwd(), "assets", "Icons");
-    const icons = [];
 
-    // Process each icon
-    params.iconNames.forEach((name) => {
-      const filePath = path.join(iconsDir, `${name}.svg`);
-      const iconData = processIconFile(filePath);
+    // PERFORMANCE: Process all icons concurrently instead of sequentially
+    const iconPromises = params.iconNames.map(async (name) => {
+      // SECURITY: sanitizeIconName already called in parseQueryParams
+      // Extra normalization for safety
+      const filePath = path.normalize(path.join(iconsDir, `${name}.svg`));
 
-      if (iconData) {
-        icons.push(iconData);
+      // SECURITY: Verify the resolved path is still within iconsDir
+      if (!filePath.startsWith(path.normalize(iconsDir))) {
+        console.warn(`Path traversal attempt blocked: ${name}`);
+        return null;
       }
+
+      return processIconFile(filePath);
     });
+
+    // Wait for all icons to be processed concurrently
+    const iconResults = await Promise.all(iconPromises);
+
+    // Filter out nulls (failed/missing icons)
+    const icons = iconResults.filter(Boolean);
 
     if (icons.length === 0) {
       return res.status(404).send("No valid icons found");
@@ -274,8 +338,12 @@ module.exports = function handler(req, res) {
     res.status(200).send(finalSvg);
   } catch (error) {
     console.error("Icon API Error:", error);
-    res
-      .status(error.message.includes("parameter") ? 400 : 500)
-      .send(error.message || "Server Error");
+    const statusCode =
+      error.message.includes("Invalid") ||
+      error.message.includes("parameter") ||
+      error.message.includes("Too many")
+        ? 400
+        : 500;
+    res.status(statusCode).send(error.message || "Server Error");
   }
 };

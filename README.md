@@ -1,6 +1,4 @@
-# Enhanced Icon API Documentation
-
-API endpoint để hiển thị multiple icons với styling và layout options.
+# Icon API Documentation
 
 ## 🎯 Basic Usage
 
