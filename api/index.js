@@ -8,7 +8,7 @@ function parseQueryParams(query) {
   const params = {
     iconNames: query.i ? query.i.split(",").map((n) => n.trim()) : [],
     size: parseInt(query.size) || 48,
-    gap: parseInt(query.gap) || 12,
+    gap: query.gap !== undefined ? parseInt(query.gap) : 12,
     padding: parseInt(query.padding) || 0,
     radius: parseInt(query.radius) || 0,
     layout: query.layout || "h", // h=horizontal, v=vertical, g=grid
